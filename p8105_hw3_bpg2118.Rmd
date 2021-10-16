@@ -1,0 +1,112 @@
+---
+title: "p8105_hw3_bpg2118"
+author: "Benjamin Goebel"
+date: "10/14/2021"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(p8105.datasets)
+```
+
+#### **Problem 1**
+
+First, let's read in the data.
+```{r}
+data("instacart")
+```
+
+This data set is `r format(nrow(instacart), big.mark = ",", trim = TRUE)` rows 
+and `r ncol(instacart)` columns. 
+Each observation in this data set represents a product in each order.
+Some key variables include order_id, product_id, department_id and aisle_id; 
+these are the respective IDs for the order, product, department and aisle.
+There are 
+`r format(length(unique(pull(instacart, order_id))), big.mark = ",", 
+          trim = TRUE)` orders, 
+`r format(length(unique(pull(instacart, product_id))), big.mark = ",", 
+          trim = TRUE)` products, 
+`r length(unique(pull(instacart, department_id)))` departments 
+and `r length(unique(pull(instacart, aisle_id)))` aisles. 
+
+Here is some info on the different products that were ordered in the
+instacart data set:
+
+*   `r pull(filter(instacart, order_id == 1), product_name)[1]` for order_id 
+1 was ordered. This item is located in the 
+`r pull(filter(instacart, order_id == 1), aisle)[1]` aisle in
+the `r pull(filter(instacart, order_id == 1), department)[1]` department.
+*   `r pull(filter(instacart, order_id == 38), product_name)[1]` for order_id 
+38 was ordered. This item is located in the 
+`r pull(filter(instacart, order_id == 38), aisle)[1]` aisle in
+the `r pull(filter(instacart, order_id == 38), department)[1]` department.
+*   Queso Fresco was ordered in 
+`r nrow(filter(instacart, product_name == "Queso Fresco"))` different orders.
+
+
+Additionally, we can organize the data set from the aisle with the most items 
+ordered to the aisle with the least items ordered. Let's focus on the aisles 
+with the most items ordered.
+
+```{r}
+# Grouping by aisle and summarizing the total number of items ordered for the
+# aisle arranged from largest to smallest
+(most_items_ordered_aisles <- instacart %>%
+                                group_by(aisle_id) %>%
+                                summarize(items_ordered = n()) %>%
+                                arrange(desc(items_ordered)))
+```
+
+From this table, we see that aisle number 
+`r pull(most_items_ordered_aisles, aisle_id)[1]` is the aisle with the most
+ordered items, followed by aisles 
+`r pull(most_items_ordered_aisles, aisle_id)[2]` 
+and `r pull(most_items_ordered_aisles, aisle_id)[3]`.
+
+Next, we can create a plot showing the number of items ordered in each aisle.
+We will limit this to aisles with more than 10,000 items ordered.
+
+```{r}
+# Bar graph with bars ordered largest to smallest from left to right
+  most_items_ordered_aisles %>%
+    filter(items_ordered > 10000) %>%
+    ggplot(aes(x = reorder(aisle_id, -items_ordered), y = items_ordered)) +
+      geom_bar(stat = "identity", width = 0.5) +
+      labs(
+      title = "Number of Items Ordered in each Aisle
+               for Aisles with Orders over 10,000",
+      x = "Aisle Number",
+      y = "Items Ordered"
+    ) +
+    theme_bw() +
+    theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+          plot.title = element_text(hjust = 0.5)) +
+    scale_y_continuous(labels = scales::comma)
+```
+
+Next, we can make a table of the three most popular items in each aisle.
+
+```{r message = FALSE}
+instacart %>%
+  group_by(aisle, product_name) %>%
+  summarize(order_freq = n()) %>%
+  slice_max(order_by = order_freq, n = 3) %>%
+  knitr::kable()
+```
+Next, we will make a table showing the mean hour of the day at which Pink Lady 
+Apples and Coffee Ice Cream are ordered on each day of the week.
+
+```{r message = FALSE}
+instacart %>%
+  filter(product_name == "Pink Lady Apples" |
+         product_name == "Coffee Ice Cream") %>%
+  group_by(order_dow, product_name) %>%
+  summarize(avg_time = round(mean(order_hour_of_day), 2)) %>%
+  pivot_wider(names_from = "order_dow",
+              values_from = "avg_time") %>%
+  knitr::kable()
+```
+
+
+
