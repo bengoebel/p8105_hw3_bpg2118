@@ -1,7 +1,7 @@
 ---
 title: "p8105_hw3_bpg2118"
 author: "Benjamin Goebel"
-date: "10/14/2021"
+date: "10/20/2021"
 output: github_document
 ---
 
@@ -12,7 +12,7 @@ library(p8105.datasets)
 
 #### **Problem 1**
 
-First, let's read in the data.
+First, let's read in the instacart data.
 ```{r}
 data("instacart")
 ```
@@ -108,5 +108,139 @@ instacart %>%
   knitr::kable()
 ```
 
+#### **Problem 2**
+
+First, let's load the BRFSS data.
+
+```{r}
+data("brfss_smart2010")
+```
+
+Next, let's clean the data.
+```{r}
+brfss_cleaned <- brfss_smart2010 %>%
+  janitor::clean_names()
+```
+
+Let's create a tibble solely focused on the overall health topic
+in the BRFSS data set.
+```{r}
+# Filter topic on overall health, then mutate the response to be an ordered
+# factor
+brfss_overall_health <- brfss_cleaned %>%
+                          filter(topic == "Overall Health") %>%
+                          mutate(response = factor(response,
+                                                   levels = c("Poor",
+                                                              "Fair",
+                                                              "Good",
+                                                              "Very good",
+                                                              "Excellent"),
+                                                   ordered = TRUE))
+                                 
+                                                   
+```
+
+Using this table focused on overall health, we can see which states were
+observed in seven or more locations in 2002.
+
+```{r}
+# Filter to 2002 data
+# Group by state
+# Get all unique locations with the state
+# Filter for unique locations greater or equal to 7 per state
+brfss_overall_health %>%
+  filter(year == 2002) %>%
+  group_by(locationabbr) %>%
+  summarize(
+    num_locations = n_distinct(locationdesc)
+  ) %>%
+  filter(num_locations >= 7) %>%
+  knitr::kable()
+```
+
+We can also use this table to see which states were
+observed in seven or more locations in 2010.
+
+```{r}
+# Filter to 2010 data
+# Group by state
+# Get all unique locations with the state
+# Filter for unique locations greater or equal to 7 per state
+brfss_overall_health %>%
+  filter(year == 2010) %>%
+  group_by(locationabbr) %>%
+  summarize(
+    num_locations = n_distinct(locationdesc)
+  ) %>%
+  filter(num_locations >= 7) %>%
+  knitr::kable()
+```
+
+Next, let's use the table focused on overall health to arrange a new table
+of only Excellent responses and only contains variables year, state, and 
+an aggregated variable that is the mean data_value among locations within a 
+state. 
+
+```{r}
+# Filter on Excellent Responses
+# Group by State and Year
+# Get a mean data value for each state-year group
+brfss_excellent_responses <- brfss_overall_health %>%
+                                filter(response == "Excellent") %>%
+                                group_by(locationabbr, year) %>%
+                                summarize(
+                                  avg_data_value = round(mean(data_value, 
+                                                         na.rm = TRUE),1)
+                                )
+knitr::kable(brfss_excellent_responses)
+```
+
+Let's plot this new table of excellent health responses. We will plot
+the year on the x-axis, mean data_value on the y-axis. We will plot one
+line for each state visualizing how each state's mean data_value changes
+through the years. Further, we will color each state's a different color
+and label the state's color in the legend located on the right side of the
+plot.
+
+```{r}
+# Plot excellent responses with year on the x-axis, average data value on the 
+# y-axis. Plot one line for each state and color each state using the 
+# viridis color package.
+brfss_excellent_responses %>%
+  ggplot(aes(x = year, y = avg_data_value, color = locationabbr)) +
+    geom_line() +
+    viridis::scale_color_viridis(discrete = TRUE, name = "State") +
+  labs(
+    title = "Average Data Value across Years stratified by State",
+    y = "Average Data Value",
+    x = "Years",
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+Next, we will create a two-panel plot, for years 2006 and 2010, visualizing the
+distribution of data_value for responses (“Poor” to “Excellent”) among locations 
+in NY State.
+
+Let's use our overall health table to complete this task. We will create a
+boxplot to visualize the distribution of data_value for each response.
+
+```{r}
+# Filter for NY state and years 2002 and 2006
+# Create a boxplot with each health response on the x-axis and the
+# distribution of the data_value on the y-axis
+brfss_overall_health %>%
+  filter(locationabbr == "NY", year == 2002 | year == 2006) %>%
+  ggplot(aes(x = response, y = data_value)) +
+    geom_boxplot() +
+    facet_wrap(~year) +
+    theme_bw() +
+  labs(
+    title = "NY Distribution of data_value by Response for 2002 and 2006",
+    x = "Response"
+  ) +
+  theme(plot.title = element_text(hjust = 0.5))
+```
 
 
