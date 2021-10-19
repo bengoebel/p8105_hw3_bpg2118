@@ -96,12 +96,41 @@ instacart %>%
   knitr::kable()
 ```
 Next, we will make a table showing the mean hour of the day at which Pink Lady 
-Apples and Coffee Ice Cream are ordered on each day of the week.
+Apples and Coffee Ice Cream are ordered on each day of the week. For this
+table, we are going to recode the day of the week variable (order_dow). It has 
+an encoding of 0-6 and we are going to assume that this encoding maps to the 
+day of the week Sunday to Saturday. This assumption is based on guidance from
+a TA response to my question about this on the P8105 class discussion board
+for homework #3. The instacart data dictionary unfortunately does not specify 
+the encoding for the order_dow variable.
 
 ```{r message = FALSE}
+# Filter for products of interest
+# Recode order_dow (0-6) to (Sunday-Saturday) and convert to factor
+# Summarize the mean hour of the day at which the products are ordered for
+# each day. The group of interest here is the product name and the day of
+# the week.
+# Pivot the day so that each column is a day of the week, each row is a product
+# name and each cell is the summary statistic
 instacart %>%
   filter(product_name == "Pink Lady Apples" |
          product_name == "Coffee Ice Cream") %>%
+  mutate(order_dow = recode(order_dow, 
+                            `0` = "Sunday",
+                            `1` = "Monday",
+                            `2` = "Tuesday",
+                            `3` = "Wednesday",
+                            `4` = "Thursday",
+                            `5` = "Friday",
+                            `6` = "Saturday")) %>%
+  mutate(order_dow = factor(order_dow,
+                            levels = c("Sunday",
+                                       "Monday",
+                                       "Tuesday",
+                                       "Wednesday",
+                                       "Thursday",
+                                       "Friday",
+                                       "Saturday"))) %>%
   group_by(order_dow, product_name) %>%
   summarize(avg_time = round(mean(order_hour_of_day), 2)) %>%
   pivot_wider(names_from = "order_dow",
