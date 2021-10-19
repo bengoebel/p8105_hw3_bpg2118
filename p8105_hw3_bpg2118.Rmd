@@ -8,6 +8,7 @@ output: github_document
 ```{r setup, include=FALSE}
 library(tidyverse)
 library(p8105.datasets)
+library(here)
 ```
 
 #### **Problem 1**
@@ -181,7 +182,7 @@ of only Excellent responses and only contains variables year, state, and
 an aggregated variable that is the mean data_value among locations within a 
 state. 
 
-```{r}
+```{r message = FALSE}
 # Filter on Excellent Responses
 # Group by State and Year
 # Get a mean data value for each state-year group
@@ -243,4 +244,95 @@ brfss_overall_health %>%
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
+#### **Problem 3**
+
+Let's begin by loading the data.
+```{r message = FALSE}
+accel_df <- read_csv(here("hw3_data", "accel_data.csv"))
+```
+
+The activity variable is displayed across multiple columns from
+activity.1 to activity.1440. We can pivot the table to have this activity
+variable in one column.
+
+```{r}
+# Pivot from wide to long, putting all activity count indices in one column
+# and all the activity count measurements in a separate column.
+accel_df <- accel_df %>%
+  pivot_longer(
+    activity.1:activity.1440,
+    names_to = "activity_count_index",
+    values_to = "activity_count_reading") %>%
+  mutate(activity_count_index = as.integer(str_replace(activity_count_index,
+                                            "activity.",
+                                            "")))
+```
+
+We can next add a logical variable that is TRUE if the day is on a weekend day
+and FALSE if the day is on a weekday.
+
+```{r}
+accel_df <- accel_df %>%
+  mutate(is_weekend = ifelse(day == "Saturday" | day == "Sunday",
+                             TRUE, FALSE))
+```
+
+Additionally, we can convert the day ID variable to be of type integer and
+the day variable to be a factor.
+
+```{r}
+# Adjusting the types of two variables
+accel_df <- accel_df %>%
+  mutate(day_id = as.integer(day_id),
+         day = factor(day, levels = c("Monday", 
+                                      "Tuesday",
+                                      "Wednesday",
+                                      "Thursday",
+                                      "Friday",
+                                      "Saturday",
+                                      "Sunday")))
+```
+
+The resulting data set has `r format(nrow(accel_df), big.mark = ",")` rows and 
+`r ncol(accel_df)` columns, with the columns being week, day_id, day, 
+activity_count_index, activity_count_reading, is_weekend. There is one row
+for every activity count reading, and there is one activity count
+reading for every minute of everyday for five weeks.
+
+Now, let's use our tidied data set to aggregate across minutes to create a
+total activity variable for each day. We will show the results in a table.
+```{r}
+# Group by each day and get a sum for the activity count reading for the day
+accel_df %>%
+  group_by(day_id) %>%
+  summarize(total_activity_day = sum(activity_count_reading)) %>%
+  knitr::kable()
+```
+
+It appears activity started off low for the first three days. After the first 
+three days, activity increased. It's difficult to discern any trends after the 
+first three days.
+
+Next, let's make a single-panel plot that visualizes the twenty-four hour 
+activity time courses for each day. We will color by day of the week.
+
+```{r}
+# Set group in ggplot to plot one line for each day
+accel_df %>%
+  ggplot(aes(x = activity_count_index, y = activity_count_reading,
+             group = day_id, color = day)) +
+  geom_line() +
+  labs(
+    x = "Minute of the Day",
+    y = "Activity Count Reading",
+    title = "Activity Count Reading as a function of Minute of the Day
+             stratified by Day of the Week",
+    color = "Day"
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+From the graph, it appears that the activity count reading increases from
+early in the day to later in the day. We observe some spikes in activity
+counts that are typically on Fridays, Saturdays or Sundays.
 
