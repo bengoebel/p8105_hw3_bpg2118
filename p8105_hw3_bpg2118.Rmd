@@ -29,7 +29,11 @@ There are
 `r format(length(unique(pull(instacart, product_id))), big.mark = ",", 
           trim = TRUE)` products, 
 `r length(unique(pull(instacart, department_id)))` departments 
-and `r length(unique(pull(instacart, aisle_id)))` aisles. 
+and `r length(unique(pull(instacart, aisle_id)))` aisles in the instacart
+data set. 
+
+Other key variables include product_name, the product name of the ordered item, 
+and order_dow, an encoded variable indicating the day of the week of the order.
 
 Here is some info on the different products that were ordered in the
 instacart data set:
@@ -52,7 +56,7 @@ with the most items ordered.
 
 ```{r}
 # Grouping by aisle and summarizing the total number of items ordered for the
-# aisle arranged from largest to smallest
+# aisle arranged from most items ordered to least items ordered
 (most_items_ordered_aisles <- instacart %>%
                                 group_by(aisle_id) %>%
                                 summarize(items_ordered = n()) %>%
@@ -69,16 +73,18 @@ Next, we can create a plot showing the number of items ordered in each aisle.
 We will limit this to aisles with more than 10,000 items ordered.
 
 ```{r}
-# Bar graph with bars ordered largest to smallest from left to right
+# Bar graph showing the total number of items ordered in each aisle.
+# Bars ordered largest to smallest from left to right.
+# X-tick labels are rotated 90 degrees to provide space for all of the aisle #s
   most_items_ordered_aisles %>%
     filter(items_ordered > 10000) %>%
     ggplot(aes(x = reorder(aisle_id, -items_ordered), y = items_ordered)) +
       geom_bar(stat = "identity", width = 0.5) +
       labs(
       title = "Number of Items Ordered in each Aisle
-               for Aisles with Orders over 10,000",
+               for Aisles with Items Ordered over 10,000",
       x = "Aisle Number",
-      y = "Items Ordered"
+      y = "Total Items Ordered"
     ) +
     theme_bw() +
     theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
@@ -89,6 +95,8 @@ We will limit this to aisles with more than 10,000 items ordered.
 Next, we can make a table of the three most popular items in each aisle.
 
 ```{r message = FALSE}
+# Get order frequencies for each unique group (aisle number, product name)
+# Filter for the three largest order frequencies for each aisle
 instacart %>%
   group_by(aisle, product_name) %>%
   summarize(order_freq = n()) %>%
@@ -99,10 +107,10 @@ Next, we will make a table showing the mean hour of the day at which Pink Lady
 Apples and Coffee Ice Cream are ordered on each day of the week. For this
 table, we are going to recode the day of the week variable (order_dow). It has 
 an encoding of 0-6 and we are going to assume that this encoding maps to the 
-day of the week Sunday to Saturday. This assumption is based on guidance from
-a TA response to my question about this on the P8105 class discussion board
-for homework #3. The instacart data dictionary unfortunately does not specify 
-the encoding for the order_dow variable.
+day of the week Sunday to Saturday respectively. This assumption is based on 
+guidance from a TA response to my question about this encoding on the P8105 
+class discussion board for homework #3. The instacart data dictionary 
+unfortunately does not specify the encoding for the order_dow variable.
 
 ```{r message = FALSE}
 # Filter for products of interest
@@ -152,10 +160,9 @@ brfss_cleaned <- brfss_smart2010 %>%
   janitor::clean_names()
 ```
 
-Let's create a tibble solely focused on the overall health topic
-in the BRFSS data set.
+Let's create a tibble focused on the overall health topic in the BRFSS data set.
 ```{r}
-# Filter topic on overall health, then mutate the response to be an ordered
+# Filter topic for overall health, then mutate the response to be an ordered
 # factor
 brfss_overall_health <- brfss_cleaned %>%
                           filter(topic == "Overall Health") %>%
@@ -166,8 +173,6 @@ brfss_overall_health <- brfss_cleaned %>%
                                                               "Very good",
                                                               "Excellent"),
                                                    ordered = TRUE))
-                                 
-                                                   
 ```
 
 Using this table focused on overall health, we can see which states were
@@ -176,7 +181,7 @@ observed in seven or more locations in 2002.
 ```{r}
 # Filter to 2002 data
 # Group by state
-# Get all unique locations with the state
+# Get all unique locations within the state
 # Filter for unique locations greater or equal to 7 per state
 brfss_overall_health %>%
   filter(year == 2002) %>%
@@ -188,7 +193,7 @@ brfss_overall_health %>%
   knitr::kable()
 ```
 
-We can also use this table to see which states were
+We can also use this overall health table to see which states were
 observed in seven or more locations in 2010.
 
 ```{r}
@@ -206,13 +211,16 @@ brfss_overall_health %>%
   knitr::kable()
 ```
 
+There are more states with 7 or more locations in 2010 than there are in 2002.
+FL, MA, NC, NJ and PA are in both tables.
+
 Next, let's use the table focused on overall health to arrange a new table
 of only Excellent responses and only contains variables year, state, and 
-an aggregated variable that is the mean data_value among locations within a 
+an aggregate variable that is the mean data_value among locations within the 
 state. 
 
 ```{r message = FALSE}
-# Filter on Excellent Responses
+# Filter for Excellent Responses
 # Group by State and Year
 # Get a mean data value for each state-year group
 brfss_excellent_responses <- brfss_overall_health %>%
@@ -226,14 +234,14 @@ knitr::kable(brfss_excellent_responses)
 ```
 
 Let's plot this new table of excellent health responses. We will plot
-the year on the x-axis, mean data_value on the y-axis. We will plot one
+the year on the x-axis and mean data_value on the y-axis. We will plot one
 line for each state visualizing how each state's mean data_value changes
-through the years. Further, we will color each state's a different color
+over time. Further, we will color each state's line a different color
 and label the state's color in the legend located on the right side of the
 plot.
 
 ```{r}
-# Plot excellent responses with year on the x-axis, average data value on the 
+# Plot excellent responses with year on the x-axis and average data value on the 
 # y-axis. Plot one line for each state and color each state using the 
 # viridis color package.
 brfss_excellent_responses %>%
@@ -241,37 +249,56 @@ brfss_excellent_responses %>%
     geom_line() +
     viridis::scale_color_viridis(discrete = TRUE, name = "State") +
   labs(
-    title = "Average Data Value across Years stratified by State",
+    title = "Average Data Value by Year stratified by State",
     y = "Average Data Value",
-    x = "Years",
+    x = "Year",
   ) +
   theme_bw() +
   theme(plot.title = element_text(hjust = 0.5))
 ```
 
-Next, we will create a two-panel plot, for years 2006 and 2010, visualizing the
-distribution of data_value for responses (“Poor” to “Excellent”) among locations 
-in NY State.
+We see in this plot that most average data values start between 20 and 27.5 in 
+2002 and end between 17.5 and 25 in 2010. As such, there appears to be a 
+slight decline in the average data value across states over time if we focus on 
+the central tendency of the average data values for all states.
 
-Let's use our overall health table to complete this task. We will create a
-boxplot to visualize the distribution of data_value for each response.
+Next, we will create a two-panel plot, for years 2006 and 2010, visualizing the
+distribution of data_value for responses, from poor to excellent, among 
+locations in NY State.
+
+Let's use our overall health table to complete this task. We will create
+boxplots to visualize the distribution of data_value for each response for 
+years 2006 and 2010.
 
 ```{r}
-# Filter for NY state and years 2002 and 2006
+# Filter for NY state and years 2006 and 2010
 # Create a boxplot with each health response on the x-axis and the
-# distribution of the data_value on the y-axis
+# data_value on the y-axis
+# Use facet_wrap() to create 2 panels: one for 2006 and one for 2010
 brfss_overall_health %>%
-  filter(locationabbr == "NY", year == 2002 | year == 2006) %>%
+  filter(locationabbr == "NY", year == 2006 | year == 2010) %>%
   ggplot(aes(x = response, y = data_value)) +
     geom_boxplot() +
     facet_wrap(~year) +
     theme_bw() +
   labs(
-    title = "NY Distribution of data_value by Response for 2002 and 2006",
+    title = "NY Distribution of data_value by Response for 2006 and 2010",
     x = "Response"
   ) +
   theme(plot.title = element_text(hjust = 0.5))
 ```
+There are some disparities between the distribution of data_value at locations
+in NY between 2006 and 2010. One difference is that the data_value values of 
+"Good" and "Very good" response groups are more similar in 2006 than they are in 
+2010. However, overall, the distribution of data_value in 2006 and 2010 for 
+locations in NY is quite similar. Poor responses have the lowest data_value 
+values, followed by Fair responses, Excellent responses, Good responses and 
+lastly Very good responses with the highest data_value values. This ordering
+of the data_value values across response groups is the same for both 2006 and 
+2010 across locations in NY. It should be noted that although we are comparing 
+the distribution of data_value across response groups in years 2006 and 2010, 
+no statistical tests were performed and the groups were strictly compared 
+visually using the boxplots above.
 
 #### **Problem 3**
 
